@@ -1,64 +1,73 @@
-﻿# Simulador de Investimentos
+﻿# Simulador de Investimentos: Comparação de Rendimentos | Invest +
 
-Aplicativo acadêmico Flutter para comparar dois investimentos com juros compostos. Utiliza Material 3, estado nativo (`StatefulWidget` e `setState`) e navegação com `Navigator.push` e `Navigator.pop`.
+Um aplicativo desenvolvido em **Flutter** para simular e comparar o rendimento de investimentos baseados em juros compostos. O projeto foi construído com foco em uma interface limpa, minimalista e utilizando as diretrizes do **Material Design 3**.
 
-## Funcionalidades
+## 🚀 Funcionalidades
 
-- Capital inicial, aplicação mensal e taxa mensal independentes para dois investimentos, com prazo compartilhado.
-- Interface adaptável: cartões lado a lado em telas largas e empilhados nas menores.
-- Azul identifica o Investimento A; verde identifica o Investimento B.
-- Montante final, rendimento total e total aplicado em cada investimento.
-- Lista comparativa dos saldos e juros mês a mês, construída com `ListView.builder`.
-- Botão “Nova Simulação” retorna ao formulário preservando os valores.
+- **Simulação Individual ou Comparativa:** Calcule a evolução de um único investimento ou adicione um segundo (Investimento B) para comparar lado a lado.
+- **Flexibilidade de Entradas:**
+  - Insira o período de investimento em **Meses** ou **Anos**.
+  - Informe a taxa de juros **Ao Mês (a.m.)** ou **Ao Ano (a.a.)** (o sistema converte automaticamente utilizando a fórmula de taxas equivalentes).
+- **Formatação de Moeda:** Os campos de entrada de valores monetários (Capital Inicial e Aportes) são formatados automaticamente para o padrão brasileiro (R$ 1.000,00) enquanto o usuário digita.
+- **Validação Rigorosa:** Tratamento de erros nos formulários para garantir que nenhum campo obrigatório fique vazio ou receba valores inválidos/negativos.
+- **Resultados Detalhados:**
+  - Cards de resumo contendo o **Montante Final** e o **Rendimento Total**.
+  - Lista detalhada com a **Evolução Mês a Mês** (aportes + rendimentos).
 
-## Cálculo
+## 📱 Interface e UX
 
-A taxa é percentual: `1` significa 1% ao mês. O aporte ocorre no fim de cada mês e rende a partir do mês seguinte:
+- Construído inteiramente com **Material 3**.
+- Design minimalista com bordas arredondadas e cores neutras.
+- Cores de destaque para facilitar a visualização (ex: Azul para Investimento A, Verde para Investimento B).
+- Layout dinâmico: a tela de resultados se adapta perfeitamente caso o usuário opte por simular apenas um investimento.
 
-```text
-juros = saldo anterior × (taxa mensal / 100)
-saldo atual = saldo anterior + juros + aporte mensal
-rendimento total = saldo final − capital inicial − (aporte mensal × meses)
-```
+## 🛠 Tecnologias Utilizadas
 
-Exemplo: R$ 1.000 iniciais, R$ 100 mensais e 1% ao mês durante 2 meses resultam em R$ 1.221,10, com R$ 21,10 de rendimento. A projeção considera taxa fixa, sem impostos, tarifas ou inflação. O cálculo mantém a precisão de `double`; os valores são exibidos com duas casas decimais. A partir de R$ 1 quadrilhão, a exibição usa notação científica.
+- **Flutter / Dart**
+- Gerenciamento de Estado nativo (`StatefulWidget`, `setState`)
+- Componentes nativos (sem dependências externas pesadas) para garantir um código leve e performático.
 
-## Validações
+## 📂 Estrutura do Projeto
 
-Todos os campos são obrigatórios e devem conter números finitos e não negativos. Os decimais aceitam vírgula ou ponto, sem separadores de milhares. Capital, aporte e taxa podem ser zero. O prazo deve ser inteiro, de 1 a 1200 meses; esse limite evita projeções excessivas. O modelo também valida suas entradas e rejeita resultados que excedam a capacidade numérica. Nesse caso, uma mensagem aparece no formulário, sem abrir os resultados.
-
-## Estrutura
+A arquitetura do projeto segue um padrão minimalista e de fácil compreensão, ideal para fins acadêmicos:
 
 ```text
 lib/
-├── main.dart
+├── main.dart                      # Configuração do tema e ponto de entrada do app.
 ├── modelos/
-│   └── modelo_investimento.dart
+│   └── modelo_investimento.dart   # Classe de modelo, conversão de taxas e cálculo de juros compostos.
 └── telas/
-    ├── tela_inicial.dart
-    └── tela_resultados.dart
+    ├── tela_inicial.dart          # Tela com o formulário de entrada, máscaras e validações.
+    └── tela_resultados.dart       # Tela adaptativa com cards de resumo e lista de evolução mensal.
 ```
 
-O modelo concentra a lógica e guarda a evolução calculada para evitar cálculos repetidos. O formulário possui um método reutilizável de criação e validação dos campos. Os controladores são liberados em `dispose`.
+## ⚙️ Como Executar o Projeto
 
-## Executar
+1. Certifique-se de ter o [Flutter SDK](https://docs.flutter.dev/get-started/install) instalado na sua máquina.
+2. Clone este repositório:
 
-Instale o Flutter compatível com Dart ^3.13.4 e configure Android ou Windows. Na pasta do projeto:
+   ```bash
+   git clone https://github.com/Davi07s/INVESTE--APP.git
+   ```
 
-```sh
-flutter pub get
-flutter devices
-flutter run
-```
+3. Acesse a pasta do projeto:
 
-Para Windows, com as ferramentas de desenvolvimento desktop instaladas, use `flutter run -d windows`. Para Android, conecte um dispositivo com depuração USB ou abra um emulador e selecione seu identificador com `flutter run -d IDENTIFICADOR`.
+   ```bash
+   cd INVESTE--APP
+   ```
 
-## Verificar
+4. Baixe as dependências:
 
-```sh
-dart format lib test
-flutter analyze
-flutter test
-```
+   ```bash
+   flutter pub get
+   ```
 
-Os testes cobrem juros compostos, momento dos aportes, taxa zero, entradas inválidas, estouro numérico, validação do formulário, navegação e preservação dos dados.
+5. Execute o aplicativo em um emulador Android, dispositivo Android físico ou Windows:
+
+   ```bash
+   flutter run
+   ```
+
+## 📝 Licença
+
+Este projeto foi desenvolvido para fins educacionais. Sinta-se à vontade para clonar, modificar e utilizar como base para seus estudos!

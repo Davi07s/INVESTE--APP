@@ -2,6 +2,73 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:investe_app/modelos/modelo_investimento.dart';
 
 void main() {
+  test('Converte taxa anual equivalente e prazo em anos', () {
+    final investimento = Investimento.porUnidades(
+      nome: 'A',
+      capitalInicial: 1000,
+      aporteMensal: 0,
+      taxaJuros: 12,
+      periodo: 1,
+      unidadePeriodo: UnidadePeriodo.anos,
+      unidadeTaxa: UnidadeTaxa.anual,
+    );
+    expect(investimento.periodoMeses, 12);
+    expect(investimento.taxaJurosMensal, closeTo(0.9488792934583, 1e-10));
+    expect(investimento.montanteFinal, closeTo(1120, 1e-8));
+    final mensal = Investimento.porUnidades(
+      nome: 'B',
+      capitalInicial: 1000,
+      aporteMensal: 100,
+      taxaJuros: investimento.taxaJurosMensal,
+      periodo: 12,
+    );
+    final anual = Investimento.porUnidades(
+      nome: 'B',
+      capitalInicial: 1000,
+      aporteMensal: 100,
+      taxaJuros: 12,
+      periodo: 1,
+      unidadePeriodo: UnidadePeriodo.anos,
+      unidadeTaxa: UnidadeTaxa.anual,
+    );
+    expect(mensal.montanteFinal, closeTo(anual.montanteFinal, 1e-8));
+  });
+  test('Valida limites nas unidades de entrada', () {
+    expect(
+      () => Investimento.porUnidades(
+        nome: 'A',
+        capitalInicial: 0,
+        aporteMensal: 0,
+        taxaJuros: -1,
+        periodo: 1,
+        unidadeTaxa: UnidadeTaxa.anual,
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => Investimento.porUnidades(
+        nome: 'A',
+        capitalInicial: 0,
+        aporteMensal: 0,
+        taxaJuros: 0,
+        periodo: 101,
+        unidadePeriodo: UnidadePeriodo.anos,
+      ),
+      throwsArgumentError,
+    );
+    final investimento = Investimento.porUnidades(
+      nome: 'A',
+      capitalInicial: 100,
+      aporteMensal: 0,
+      taxaJuros: 0,
+      periodo: 100,
+      unidadePeriodo: UnidadePeriodo.anos,
+      unidadeTaxa: UnidadeTaxa.anual,
+    );
+    expect(investimento.calcularEvolucaoMensal().length, 1200);
+    expect(investimento.montanteFinal, 100);
+  });
+
   test('Calcula juros compostos com aportes no fim do mês', () {
     final investimento = Investimento(
       nome: 'A',

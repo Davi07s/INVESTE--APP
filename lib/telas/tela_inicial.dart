@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../modelos/modelo_investimento.dart';
 import 'tela_resultados.dart';
@@ -12,6 +13,9 @@ class TelaInicial extends StatefulWidget {
 class _EstadoTelaInicial extends State<TelaInicial> {
   final chaveFormulario = GlobalKey<FormState>();
   final _controladores = List.generate(7, (_) => TextEditingController());
+  bool _comparar = false;
+  UnidadePeriodo _unidadePeriodo = UnidadePeriodo.meses;
+  final _unidadesTaxa = [UnidadeTaxa.mensal, UnidadeTaxa.mensal];
   bool _mostrarErros = false;
   String? _erroCalculo;
 
@@ -26,16 +30,24 @@ class _EstadoTelaInicial extends State<TelaInicial> {
   double? _converter(String valor) =>
       double.tryParse(valor.trim().replaceAll(',', '.'));
 
+  double? _converterMoeda(String valor) =>
+      double.tryParse(valor.replaceAll('.', '').replaceAll(',', '.'));
+
   Widget _construirCampoTexto(
     int indice,
     String rotulo, {
     bool prazo = false,
     String? sufixo,
   }) {
+    final moeda = !prazo && indice % 3 != 2;
+    final limite = _unidadePeriodo == UnidadePeriodo.anos ? 100 : 1200;
+    final unidade = _unidadePeriodo == UnidadePeriodo.anos ? 'anos' : 'meses';
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: TextFormField(
+        key: ValueKey('campo_$indice'),
         controller: _controladores[indice],
+        inputFormatters: moeda ? [FormatadorMoeda()] : null,
         keyboardType: prazo
             ? TextInputType.number
             : const TextInputType.numberWithOptions(decimal: true),
@@ -43,16 +55,16 @@ class _EstadoTelaInicial extends State<TelaInicial> {
         validator: (valor) {
           // Rejeitamos campos vazios, texto, infinitos e valores negativos.
           if (valor == null || valor.trim().isEmpty) return 'Campo obrigatório';
-          final numero = _converter(valor);
+          final numero = moeda ? _converterMoeda(valor) : _converter(valor);
           if (numero == null || !numero.isFinite) {
             return 'Insira um número válido';
           }
           if (numero < 0) return 'O valor não pode ser negativo';
           if (prazo && int.tryParse(valor.trim()) == null) {
-            return 'Informe meses inteiros';
+            return 'Informe $unidade inteiros';
           }
-          if (prazo && (numero < 1 || numero > 1200)) {
-            return 'Informe de 1 a 1200 meses';
+          if (prazo && (numero < 1 || numero > limite)) {
+            return 'Informe de 1 a $limite $unidade';
           }
           return null;
         },
@@ -74,10 +86,23 @@ class _EstadoTelaInicial extends State<TelaInicial> {
             ),
             _construirCampoTexto(inicio, 'Capital inicial', sufixo: 'R\$'),
             _construirCampoTexto(inicio + 1, 'Aplicação mensal', sufixo: 'R\$'),
-            _construirCampoTexto(
-              inicio + 2,
-              'Taxa de juros mensal',
-              sufixo: '%',
+            _construirCampoTexto(inicio + 2, 'Taxa de juros', sufixo: '%'),
+            const SizedBox(height: 12),
+            SegmentedButton<UnidadeTaxa>(
+              segments: const [
+                ButtonSegment(
+                  value: UnidadeTaxa.mensal,
+                  label: Text('Ao Mês (a.m.)'),
+                ),
+                ButtonSegment(
+                  value: UnidadeTaxa.anual,
+                  label: Text('Ao Ano (a.a.)'),
+                ),
+              ],
+              selected: {_unidadesTaxa[inicio ~/ 3]},
+              showSelectedIcon: false,
+              onSelectionChanged: (selecao) =>
+                  setState(() => _unidadesTaxa[inicio ~/ 3] = selecao.single),
             ),
           ],
         ),
@@ -93,19 +118,21 @@ class _EstadoTelaInicial extends State<TelaInicial> {
     });
     if (!chaveFormulario.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
-    Investimento criar(String nome, int inicio) => Investimento(
+    Investimento criar(String nome, int inicio) => Investimento.porUnidades(
       nome: nome,
-      capitalInicial: _converter(_controladores[inicio].text)!,
-      aporteMensal: _converter(_controladores[inicio + 1].text)!,
-      taxaJurosMensal: _converter(_controladores[inicio + 2].text)!,
-      periodoMeses: int.parse(_controladores[6].text.trim()),
+      capitalInicial: _converterMoeda(_controladores[inicio].text)!,
+      aporteMensal: _converterMoeda(_controladores[inicio + 1].text)!,
+      taxaJuros: _converter(_controladores[inicio + 2].text)!,
+      periodo: int.parse(_controladores[6].text.trim()),
+      unidadePeriodo: _unidadePeriodo,
+      unidadeTaxa: _unidadesTaxa[inicio ~/ 3],
     );
     try {
       final investimentoA = criar('Investimento A', 0);
-      final investimentoB = criar('Investimento B', 3);
+      final investimentoB = _comparar ? criar('Investimento B', 3) : null;
       // Calculamos antes de navegar para capturar erros numéricos no formulário.
       investimentoA.calcularEvolucaoMensal();
-      investimentoB.calcularEvolucaoMensal();
+      investimentoB?.calcularEvolucaoMensal();
       Navigator.push(
         context,
         MaterialPageRoute<void>(
@@ -123,7 +150,7 @@ class _EstadoTelaInicial extends State<TelaInicial> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Simulador de Investimentos')),
+      appBar: AppBar(title: const Text('Investe +')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -145,9 +172,17 @@ class _EstadoTelaInicial extends State<TelaInicial> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Informe dois investimentos. Use vírgula ou ponto para decimais, sem separadores de milhares.',
+                      'Simule o seu investimento e compare',
                     ),
                     const SizedBox(height: 24),
+                    SwitchListTile.adaptive(
+                      title: const Text('Adicionar Comparação'),
+                      value: _comparar,
+                      onChanged: (valor) => setState(() {
+                        _comparar = valor;
+                        _erroCalculo = null;
+                      }),
+                    ),
                     LayoutBuilder(
                       builder: (context, restricoes) {
                         final primeiro = _construirInvestimento(
@@ -155,6 +190,7 @@ class _EstadoTelaInicial extends State<TelaInicial> {
                           0,
                           Colors.blue,
                         );
+                        if (!_comparar) return primeiro;
                         final segundo = _construirInvestimento(
                           'Investimento B',
                           3,
@@ -182,8 +218,24 @@ class _EstadoTelaInicial extends State<TelaInicial> {
                     const SizedBox(height: 16),
                     _construirCampoTexto(
                       6,
-                      'Prazo compartilhado em meses',
+                      'Prazo de investimento',
                       prazo: true,
+                    ),
+                    const SizedBox(height: 12),
+                    SegmentedButton<UnidadePeriodo>(
+                      segments: const [
+                        ButtonSegment(
+                          value: UnidadePeriodo.meses,
+                          label: Text('Meses'),
+                        ),
+                        ButtonSegment(
+                          value: UnidadePeriodo.anos,
+                          label: Text('Anos'),
+                        ),
+                      ],
+                      selected: {_unidadePeriodo},
+                      onSelectionChanged: (selecao) =>
+                          setState(() => _unidadePeriodo = selecao.single),
                     ),
                     const SizedBox(height: 16),
                     const Text(
@@ -203,7 +255,11 @@ class _EstadoTelaInicial extends State<TelaInicial> {
                     ElevatedButton.icon(
                       onPressed: _simular,
                       icon: const Icon(Icons.compare_arrows),
-                      label: const Text('Simular e Comparar'),
+                      label: Text(
+                        _comparar
+                            ? 'Simular e Comparar'
+                            : 'Simular Investimento',
+                      ),
                     ),
                   ],
                 ),
@@ -212,6 +268,48 @@ class _EstadoTelaInicial extends State<TelaInicial> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Máscara em centavos, sem conversão para double, para preservar os dígitos.
+class FormatadorMoeda extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue valorAntigo,
+    TextEditingValue valorNovo,
+  ) {
+    if (valorNovo.text.isEmpty) return valorNovo;
+    if (!RegExp(r'^[0-9.,]+$').hasMatch(valorNovo.text)) return valorAntigo;
+    var digitos = valorNovo.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digitos.isEmpty) return const TextEditingValue();
+    digitos = digitos.replaceFirst(RegExp(r'^0+'), '').padLeft(3, '0');
+    final inteiro = digitos
+        .substring(0, digitos.length - 2)
+        .replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (resultado) => '${resultado[1]}.',
+        );
+    final texto = '$inteiro,${digitos.substring(digitos.length - 2)}';
+    if (texto == valorNovo.text) return valorNovo;
+    // Mantém a posição lógica do cursor ao inserir separadores antes dele.
+    final cursorOriginal = valorNovo.selection.extentOffset.clamp(
+      0,
+      valorNovo.text.length,
+    );
+    final digitosDireita = valorNovo.text
+        .substring(cursorOriginal)
+        .replaceAll(RegExp(r'[^0-9]'), '')
+        .length;
+    var cursor = texto.length;
+    var restantes = digitosDireita;
+    while (cursor > 0 && restantes > 0) {
+      cursor--;
+      if (RegExp(r'[0-9]').hasMatch(texto[cursor])) restantes--;
+    }
+    return TextEditingValue(
+      text: texto,
+      selection: TextSelection.collapsed(offset: cursor),
     );
   }
 }

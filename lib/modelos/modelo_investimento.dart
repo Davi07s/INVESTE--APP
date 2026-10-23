@@ -1,3 +1,9 @@
+import 'dart:math' as matematica;
+
+enum UnidadePeriodo { meses, anos }
+
+enum UnidadeTaxa { mensal, anual }
+
 class EvolucaoMensal {
   const EvolucaoMensal({
     required this.mes,
@@ -10,6 +16,32 @@ class EvolucaoMensal {
 }
 
 class Investimento {
+  /// Normaliza as entradas para meses e taxa percentual mensal equivalente.
+  factory Investimento.porUnidades({
+    required String nome,
+    required double capitalInicial,
+    required double aporteMensal,
+    required double taxaJuros,
+    required int periodo,
+    UnidadePeriodo unidadePeriodo = UnidadePeriodo.meses,
+    UnidadeTaxa unidadeTaxa = UnidadeTaxa.mensal,
+  }) {
+    if (!taxaJuros.isFinite || taxaJuros < 0) {
+      throw ArgumentError('Informe uma taxa finita e não negativa.');
+    }
+    return Investimento(
+      nome: nome,
+      capitalInicial: capitalInicial,
+      aporteMensal: aporteMensal,
+      taxaJurosMensal: unidadeTaxa == UnidadeTaxa.anual
+          ? (matematica.pow(1 + taxaJuros / 100, 1 / 12) - 1) * 100
+          : taxaJuros,
+      periodoMeses: unidadePeriodo == UnidadePeriodo.anos
+          ? periodo * 12
+          : periodo,
+    );
+  }
+
   Investimento({
     required this.nome,
     required this.capitalInicial,
@@ -26,7 +58,7 @@ class Investimento {
         periodoMeses < 1 ||
         periodoMeses > 1200) {
       throw ArgumentError(
-        'Informe valores finitos, não negativos e prazo de 1 a 12 meses.',
+        'Informe valores finitos, não negativos e prazo de 1 a 1200 meses.',
       );
     }
   }

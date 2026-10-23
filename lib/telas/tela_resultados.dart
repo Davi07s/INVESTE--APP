@@ -6,10 +6,10 @@ class TelaResultados extends StatelessWidget {
   const TelaResultados({
     super.key,
     required this.investimentoA,
-    required this.investimentoB,
+    this.investimentoB,
   });
   final Investimento investimentoA;
-  final Investimento investimentoB;
+  final Investimento? investimentoB;
 
   String _formatarMoeda(double valor) {
     if (valor.abs() >= 1e15) {
@@ -91,9 +91,15 @@ class TelaResultados extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final evolucaoA = investimentoA.calcularEvolucaoMensal();
-    final evolucaoB = investimentoB.calcularEvolucaoMensal();
+    final evolucaoB = investimentoB?.calcularEvolucaoMensal();
     return Scaffold(
-      appBar: AppBar(title: const Text('Comparação de rendimentos')),
+      appBar: AppBar(
+        title: Text(
+          investimentoB == null
+              ? 'Resultado do investimento'
+              : 'Comparação de rendimentos',
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -123,9 +129,10 @@ class TelaResultados extends StatelessWidget {
                             investimentoA,
                             Colors.blue,
                           );
+                          if (investimentoB == null) return primeiro;
                           final segundo = _construirResumo(
                             context,
-                            investimentoB,
+                            investimentoB!,
                             Colors.green,
                           );
                           return restricoes.maxWidth >= 680
@@ -165,7 +172,7 @@ class TelaResultados extends StatelessWidget {
                   );
                 }
                 final mesA = evolucaoA[indice - 1];
-                final mesB = evolucaoB[indice - 1];
+                final mesB = evolucaoB?[indice - 1];
                 return Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -185,12 +192,14 @@ class TelaResultados extends StatelessWidget {
                               mesA,
                               Colors.blue,
                             ),
-                            const SizedBox(width: 16),
-                            _construirValorMensal(
-                              'Investimento B',
-                              mesB,
-                              Colors.green,
-                            ),
+                            if (mesB != null) ...[
+                              const SizedBox(width: 16),
+                              _construirValorMensal(
+                                'Investimento B',
+                                mesB,
+                                Colors.green,
+                              ),
+                            ],
                           ],
                         ),
                       ],
